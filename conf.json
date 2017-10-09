@@ -1,0 +1,16 @@
+{
+    "database":
+        {
+            "DBDumpFile": "WIKI_DBDump_20171004.sql",
+            "DBUser": "wikidb",
+            "DBPass": "wikidb",
+            "DockerDB" : "mysql-5.7"
+        },
+    "file" :
+        {
+          "WhichFile" : "file.tar.gz",
+          "ToDocker" : "wiki",
+          "DockerPath" : "/images",
+          "DockerFileOwner" : "root"
+        }
+}
