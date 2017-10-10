@@ -1,9 +1,10 @@
 {
     "database":
         {
-            "DBDumpFile": "WIKI_DBDump_20171004.sql",
+            "DBDumpFile": "prova",
             "DBUser": "wikidb",
             "DBPass": "wikidb",
+            "DBName": "wiki",
             "DockerDB" : "mysql-5.7"
         },
     "file" :

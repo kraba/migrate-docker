@@ -1,9 +1,17 @@
 #!/usr/bin/python
-"""Docker utility to migrate db dump or files to a docker container."""
+"""Docker utility to migrate db dump or files to a docker container.
+
+Input: conf.json file. Yes..it's a simple and bugged script.
+Author Matteo Basso - matteo (dot) basso (at) gmail (dot) com
+Date: 20171009
+Version: 0.1
+"""
 
 import json
 import magic
 import docker
+import tarfile
+import io
 
 
 def jsonToDict():
@@ -40,7 +48,7 @@ def containerIsRun(key, value):
     """Getting info of Container.
 
     Container exists? Running or Exited. Otherwise doesen't exists.
-    TODO: gestire docker.errors.NotFound: 404 Client Error: Not Found
+    TODO: docker.errors.NotFound: 404 Client Error: Not Found
         ("No such container: nomedocker")
     """
     container = clientDocker.containers.get(data[key][value])
@@ -67,15 +75,40 @@ def recoverMime(filetype):
     return (magic.from_file(filetype, mime=True).split("/")[1:])[0]
 
 
-"""
-def importSql(data):
-    mime = recoverMime(data["database"]["dump"])
-    if mime != "plain":
-        pass
+def importSql(key, value):
+    """Import the DB Dump."""
+    dbName = data[key]['DBName']
+    dbUser = data[key]['DBUser']
+    dbPass = data[key]['DBPass']
+    container = clientDocker.containers.get(data[key][value])
+    """Query to check if DB exists"""
+    dbExists = ("mysql -u {} -p{} -s -e \"SHOW DATABASES LIKE '{}'\""
+                .format(dbUser, dbPass, dbName))
+    """If doesn't exists...check user to create it """
+    if container.exec_run(dbExists, stderr=False).rstrip() != dbName:
+        print('Argh! DB {} doesn\'t exists! Do you want to create it?'
+              .format(dbName))
+        if raw_input('Type Y/y to create it, any other keys to exit: ') \
+           not in ('y', 'Y'):
+            print('Check DB name and relaunch!')
+            exit()
+        else:
+            print('DB {} - {} container is on creation'.format(
+                dbName, data[key]['DockerDB']))
+            dbCreation = ('mysql -u {} -p{} -s -e \"CREATE DATABASE {};\"'
+                          .format(dbUser, dbPass, dbName))
+            container.exec_run(dbCreation, stderr=False)
+            return importSql('database', 'DockerDB')
     else:
-        if not data["database"]["dbpass"]:
-            pass
-"""
+        with tarfile.open("dbdump.tar", "w") as tarSql:
+            tarSql.add("prova")
+        with open("dbdump.tar", "rb") as extractDump:
+            container.put_archive('/tmp/', extractDump)
+        #dbSql = ('/tmp/{}'.format(tarFile))
+        #dbDump = ('mysql -u {} -p{} -s -e \"use {}; source {}\"'
+        #          .format(dbUser, dbPass, dbName, dbSql))
+        #print dbDump
+
 
 correctCycle = 'n'
 print('Checking json config file\n')
@@ -85,6 +118,16 @@ while correctCycle not in ('y', 'Y'):
 
 """Initialize clientDocker."""
 clientDocker = docker.from_env()
+
 """Check DB Docker"""
 containerIsRun('database', 'DockerDB')
-print "nemo vanti"
+
+"""Check File MIME
+TODO: uncompress/check file compressed"""
+#if recoverMime(data["database"]["DBDumpFile"]) != "plain":
+#    print('File {} is not an .sql plain text, please check/uncompress it'
+#          '\nScript will die/exit!!!'.format(data["database"]["DBDumpFile"]))
+#    exit()
+
+"""Execute import DB"""
+importSql('database', 'DockerDB')
