@@ -1,17 +1,31 @@
 #!/usr/bin/python
 """Docker utility to migrate db dump or files to a docker container.
 
-Input: conf.json file. Yes..it's a simple and bugged script.
+Read: conf.json file. Yes..it's a simple and bugged script.
 Author Matteo Basso - matteo (dot) basso (at) gmail (dot) com
 Date: 20171009
 Version: 0.1
+To do: exception + images + other cases
+
+License:
+    mygrate.py is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    mygrate/migrate-docker is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with mygrate.py. If not, see <http://www.gnu.org/licenses/>.
 """
 
 import json
 import magic
 import docker
 import tarfile
-import io
 
 
 def jsonToDict():
@@ -80,6 +94,8 @@ def importSql(key, value):
     dbName = data[key]['DBName']
     dbUser = data[key]['DBUser']
     dbPass = data[key]['DBPass']
+    dbFile = data[key]['DBDumpFile']
+    dbDocker = data[key][value]
     container = clientDocker.containers.get(data[key][value])
     """Query to check if DB exists"""
     dbExists = ("mysql -u {} -p{} -s -e \"SHOW DATABASES LIKE '{}'\""
@@ -94,20 +110,21 @@ def importSql(key, value):
             exit()
         else:
             print('DB {} - {} container is on creation'.format(
-                dbName, data[key]['DockerDB']))
+                dbName, data[key]['DBDocker']))
             dbCreation = ('mysql -u {} -p{} -s -e \"CREATE DATABASE {};\"'
                           .format(dbUser, dbPass, dbName))
             container.exec_run(dbCreation, stderr=False)
-            return importSql('database', 'DockerDB')
+            return importSql('database', 'DBDocker')
     else:
         with tarfile.open("dbdump.tar", "w") as tarSql:
-            tarSql.add("prova")
+            tarSql.add(dbFile)
         with open("dbdump.tar", "rb") as extractDump:
             container.put_archive('/tmp/', extractDump)
-        #dbSql = ('/tmp/{}'.format(tarFile))
-        #dbDump = ('mysql -u {} -p{} -s -e \"use {}; source {}\"'
-        #          .format(dbUser, dbPass, dbName, dbSql))
-        #print dbDump
+        fileSql = ('/tmp/{}'.format(dbFile))
+        importDump = ('mysql -u {} -p{} -s -e \"use {}; source {}\"'
+                      .format(dbUser, dbPass, dbName, fileSql))
+        container.exec_run(importDump, stderr=False)
+        print('DB {} imported on {} container'.format(dbName, dbDocker))
 
 
 correctCycle = 'n'
@@ -120,14 +137,15 @@ while correctCycle not in ('y', 'Y'):
 clientDocker = docker.from_env()
 
 """Check DB Docker"""
-containerIsRun('database', 'DockerDB')
+containerIsRun('database', 'DBDocker')
 
 """Check File MIME
-TODO: uncompress/check file compressed"""
+TODO: uncompress/check file compressed
 #if recoverMime(data["database"]["DBDumpFile"]) != "plain":
 #    print('File {} is not an .sql plain text, please check/uncompress it'
 #          '\nScript will die/exit!!!'.format(data["database"]["DBDumpFile"]))
 #    exit()
+"""
 
 """Execute import DB"""
-importSql('database', 'DockerDB')
+importSql('database', 'DBDocker')

@@ -1,17 +1,10 @@
 {
     "database":
         {
-            "DBDumpFile": "prova",
-            "DBUser": "wikidb",
-            "DBPass": "wikidb",
-            "DBName": "wiki",
-            "DockerDB" : "mysql-5.7"
-        },
-    "file" :
-        {
-          "WhichFile" : "file.tar.gz",
-          "ToDocker" : "wiki",
-          "DockerPath" : "/images",
-          "DockerFileOwner" : "root"
+            "DBDumpFile": "data.sql",
+            "DBUser": "userdb",
+            "DBPass": "passdb",
+            "DBName": "mydb",
+            "DBDocker" : "mysql-5.7"
         }
 }
