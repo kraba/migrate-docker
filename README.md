@@ -27,7 +27,8 @@ and launch it:
 Docker...of course...and two python package: magic & docker
 ```
 pip install docker
-pip install magic```
+pip install magic
+```
 
 ### Author
 
