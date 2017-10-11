@@ -5,7 +5,7 @@ Read: conf.json file. Yes..it's a simple and bugged script.
 Author Matteo Basso - matteo (dot) basso (at) gmail (dot) com
 Date: 20171009
 Version: 0.1
-To do: exception + images + other cases
+To do: images + other cases
 
 License:
     mygrate.py is free software: you can redistribute it and/or modify
@@ -13,7 +13,7 @@ License:
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    mygrate/migrate-docker is distributed in the hope that it will be useful,
+    mygrate.py is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -62,8 +62,6 @@ def containerIsRun(key, value):
     """Getting info of Container.
 
     Container exists? Running or Exited. Otherwise doesen't exists.
-    TODO: docker.errors.NotFound: 404 Client Error: Not Found
-        ("No such container: nomedocker")
     """
     container = clientDocker.containers.get(data[key][value])
     if container.status != "running":
@@ -130,22 +128,39 @@ def importSql(key, value):
 correctCycle = 'n'
 print('Checking json config file\n')
 while correctCycle not in ('y', 'Y'):
-    data = jsonToDict()
-    correctCycle = printJson(checkJson(data))
+    try:
+        data = jsonToDict()
+        correctCycle = printJson(checkJson(data))
+    except (AttributeError, ValueError) as e:
+        print('JSON file had errors..: {}'.format(e))
+        exit()
 
-"""Initialize clientDocker."""
-clientDocker = docker.from_env()
 
-"""Check DB Docker"""
-containerIsRun('database', 'DBDocker')
+try:
+    """Initialize clientDocker. """
+    clientDocker = docker.from_env()
+except Exception as e:
+    print e
+    exit()
 
-"""Check File MIME
-TODO: uncompress/check file compressed
-#if recoverMime(data["database"]["DBDumpFile"]) != "plain":
-#    print('File {} is not an .sql plain text, please check/uncompress it'
-#          '\nScript will die/exit!!!'.format(data["database"]["DBDumpFile"]))
-#    exit()
-"""
+try:
+    """Check DB Docker"""
+    containerIsRun('database', 'DBDocker')
+except Exception as e:
+    print e
+    exit()
 
-"""Execute import DB"""
-importSql('database', 'DBDocker')
+    """Check File MIME
+    TODO: uncompress/check file compressed
+    #if recoverMime(data["database"]["DBDumpFile"]) != "plain":
+    #    print('File {} is not an .sql plain text, please check/uncompress it'
+    #    '\nScript will die/exit!!!'.format(data["database"]["DBDumpFile"]))
+    #    exit()
+    """
+
+try:
+    """Execute import DB"""
+    importSql('database', 'DBDocker')
+except Exception as e:
+    print e
+    exit()
